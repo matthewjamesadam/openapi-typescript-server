@@ -1,0 +1,217 @@
+/* tslint:disable */
+/* eslint-disable */
+{{>licenseInfo}}
+
+import * as runtime from '../runtime';
+import * as Express from 'express';
+
+{{#imports.0}}
+import {
+    {{#imports}}
+    {{className}},
+    {{className}}FromJSON,
+    {{className}}ToJSON,
+    {{/imports}}
+} from '../models';
+{{/imports.0}}
+
+{{#operations}}
+{{#operation}}
+{{#allParams.0}}
+export interface {{#prefixParameterInterfaces}}{{classname}}{{/prefixParameterInterfaces}}{{operationIdCamelCase}}Params {
+{{#allParams}}
+     {{#isDateTime}}
+     {{paramName}}{{^required}}?{{/required}}: Date{{#isNullable}} | null{{/isNullable}};
+     {{/isDateTime}}
+     {{^isDateTime}}
+     {{#isDate}}
+     {{paramName}}{{^required}}?{{/required}}: Date{{#isNullable}} | null{{/isNullable}};
+     {{/isDate}}
+     {{^isDate}}
+     {{paramName}}{{^required}}?{{/required}}: {{#isEnum}}{{{datatypeWithEnum}}}{{/isEnum}}{{^isEnum}}{{{dataType}}}{{#isNullable}} | null{{/isNullable}}{{/isEnum}};
+     {{/isDate}}
+     {{/isDateTime}}
+{{/allParams}}
+}
+{{/allParams.0}}
+{{/operation}}
+{{/operations}}
+
+{{#operations}}
+/**
+ * {{#description}}{{{description}}}{{/description}}{{^description}}no description{{/description}}
+ */
+export abstract class {{classname}}Base {
+
+    router = Express.Router()
+
+    {{#operation}}
+    /**
+     {{#notes}}
+     * {{&notes}}
+     {{/notes}}
+     {{#summary}}
+     * {{&summary}}
+     {{/summary}}
+     */
+    protected abstract {{nickname}}({{#allParams.0}}params: {{#prefixParameterInterfaces}}{{classname}}{{/prefixParameterInterfaces}}{{operationIdCamelCase}}Params, {{/allParams.0}}context: runtime.Context): Promise<{{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}void{{/returnType}}>;
+
+    {{/operation}}
+
+    constructor() {
+
+        {{#operation}}
+        this.router.{{#lambda.lowercase}}{{httpMethod}}{{/lambda.lowercase}}('{{path}}'.replace(/{/g, ':').replace(/}/g, ''), async (req, res) => {
+            try {
+                await this.handle_{{nickname}}(req, res);
+            }
+            catch (e) {
+                this.processError(e, req, res);
+            }
+        });
+        {{/operation}}
+    }
+
+    processError(e: any, req: Express.Request, res: Express.Response) {
+        console.log(`Error occurred in {{nickname}}: ${e}`)
+        if (e.stack) {
+            console.log(e.stack);
+        }
+        if (e.statusCode) {
+            res.status(e.statusCode).send(e.message);
+        }
+        else {
+            res.status(500).send(e.message);
+        }
+    }
+
+    {{#operation}}
+    async handle_{{nickname}}(req: Express.Request, res: Express.Response) {
+
+        const context: runtime.Context = {req, res};
+
+        {{#queryParams}}
+        {{#isListContainer}}
+        if (requestParameters.{{paramName}}) {
+            {{#isCollectionFormatMulti}}
+            params['{{paramName}}'] = req.headers.{{paramName}};
+            {{/isCollectionFormatMulti}}
+            {{^isCollectionFormatMulti}}
+            params['{{paramName}}'] = req.headers.{{paramName}};
+//?            queryParameters['{{baseName}}'] = requestParameters.{{paramName}}.join(runtime.COLLECTION_FORMATS["{{collectionFormat}}"]);
+            {{/isCollectionFormatMulti}}
+        }
+
+        {{/isListContainer}}
+        {{^isListContainer}}
+        var {{paramName}}
+        if (req.query.{{paramName}} !== undefined) {
+            {{#isDateTime}}
+            {{paramName}} = new Date(req.query.{{paramName}}.toString());
+            {{/isDateTime}}
+            {{#isDate}}
+            {{paramName}} = new Date(req.query.{{paramName}}.toString());
+            {{/isDate}}
+	    {{#isNumber}}
+		{{paramName}} = Number(req.query.{{paramName}}.toString());
+	    {{/isNumber}}
+	    {{#isInteger}}
+		{{paramName}} = Number(req.query.{{paramName}}.toString());
+	    {{/isInteger}}
+	    {{#isString}}
+             {{paramName}} = req.query.{{paramName}}.toString();
+	    {{/isString}}
+        }
+	{{#required}}
+	else {
+          res.sendStatus(500);
+	  return 
+	}
+	{{/required}}
+
+        {{/isListContainer}}
+        {{/queryParams}}
+
+
+        {{#pathParams}}
+        {{#isPrimitiveType}}
+        {{#isNumeric}}
+        let {{paramName}} = Number(req.params.{{baseName}})
+        {{/isNumeric}}
+        {{^isNumeric}}
+        let {{paramName}} = req.params.{{baseName}}
+        {{/isNumeric}}
+        {{/isPrimitiveType}}
+        {{/pathParams}}
+
+        {{#hasBodyParam}}
+        {{#bodyParam}}
+        {{#isContainer}}
+        {{#isListContainer}}
+        let {{paramName}} = req.body.map({{datatype}}FromJSON)
+        {{/isListContainer}}
+        {{/isContainer}}
+        {{#isPrimitiveType}}
+        let {{paramName}} = req.body
+        {{/isPrimitiveType}}
+        {{^isPrimitiveType}}
+        let {{paramName}} = {{dataType}}FromJSON(req.body)
+        {{/isPrimitiveType}}
+        {{/bodyParam}}
+        {{/hasBodyParam}}
+
+
+        {{#allParams.0}}
+        let params: {{operationIdCamelCase}}Params = {
+        {{#queryParams}}
+            {{paramName}},
+        {{/queryParams}}
+        {{#pathParams}}
+            {{paramName}},
+        {{/pathParams}}
+        {{#bodyParams}}
+            {{paramName}},
+        {{/bodyParams}}
+        }
+
+        const response = await this.{{nickname}}(params, context);
+        {{/allParams.0}}
+
+        {{^allParams.0}}
+        const response = await this.{{nickname}}(context);
+        {{/allParams.0}}
+
+        {{#returnType}}
+        {{#isResponseFile}}
+//        return new runtime.BlobApiResponse(response);
+        {{/isResponseFile}}
+        {{^isResponseFile}}
+        {{#returnTypeIsPrimitive}}
+        {{#isMapContainer}}
+        res.json(response);
+        {{/isMapContainer}}
+        {{#isListContainer}}
+        res.json(response);
+        {{/isListContainer}}
+        {{#returnSimpleType}}
+        res.send(response);
+        {{/returnSimpleType}}
+        {{/returnTypeIsPrimitive}}
+        {{^returnTypeIsPrimitive}}
+        {{#isListContainer}}
+        res.json(response);
+        {{/isListContainer}}
+        {{^isListContainer}}
+        res.json(response);
+        {{/isListContainer}}
+        {{/returnTypeIsPrimitive}}
+        {{/isResponseFile}}
+        {{/returnType}}
+        {{^returnType}}
+        res.sendStatus(200);
+        {{/returnType}}
+
+    }
+    {{/operation}}
+}
+{{/operations}}
