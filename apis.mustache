@@ -202,7 +202,12 @@ export abstract class {{classname}}Base {
         res.json(response);
         {{/isListContainer}}
         {{^isListContainer}}
-        res.json(response);
+        {{#isArray}}
+        res.json(response.map({{returnBaseType}}ToJSON));
+        {{/isArray}}
+        {{^isArray}}
+        res.json({{returnBaseType}}ToJSON(response));
+        {{/isArray}}
         {{/isListContainer}}
         {{/returnTypeIsPrimitive}}
         {{/isResponseFile}}
