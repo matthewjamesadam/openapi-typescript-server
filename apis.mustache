@@ -155,7 +155,19 @@ export abstract class {{classname}}Base {
         let {{paramName}} = req.body
         {{/isPrimitiveType}}
         {{^isPrimitiveType}}
+        {{#isArray}}
+        {{#items}}
+        {{#isPrimitiveType}}
+        let {{paramName}} = req.body
+        {{/isPrimitiveType}}
+        {{^isPrimitiveType}}
+        let {{paramName}} = req.body.map({{baseType}}FromJSON)
+        {{/isPrimitiveType}}
+        {{/items}}
+        {{/isArray}}
+        {{^isArray}}
         let {{paramName}} = {{dataType}}FromJSON(req.body)
+        {{/isArray}}
         {{/isPrimitiveType}}
         {{/bodyParam}}
         {{/hasBodyParam}}
@@ -203,7 +215,14 @@ export abstract class {{classname}}Base {
         {{/isListContainer}}
         {{^isListContainer}}
         {{#isArray}}
+        {{#items}}
+        {{#isPrimitiveType}}
+        res.json(response);
+        {{/isPrimitiveType}}
+        {{^isPrimitiveType}}
         res.json(response.map({{returnBaseType}}ToJSON));
+        {{/isPrimitiveType}}
+        {{/items}}
         {{/isArray}}
         {{^isArray}}
         res.json({{returnBaseType}}ToJSON(response));
