@@ -208,6 +208,9 @@ export abstract class {{classname}}Base {
         {{#returnSimpleType}}
         res.send(response);
         {{/returnSimpleType}}
+        {{#isArray}}
+        res.json(response);
+        {{/isArray}}
         {{/returnTypeIsPrimitive}}
         {{^returnTypeIsPrimitive}}
         {{#isListContainer}}
@@ -215,14 +218,7 @@ export abstract class {{classname}}Base {
         {{/isListContainer}}
         {{^isListContainer}}
         {{#isArray}}
-        {{#items}}
-        {{#isPrimitiveType}}
-        res.json(response);
-        {{/isPrimitiveType}}
-        {{^isPrimitiveType}}
         res.json(response.map({{returnBaseType}}ToJSON));
-        {{/isPrimitiveType}}
-        {{/items}}
         {{/isArray}}
         {{^isArray}}
         res.json({{returnBaseType}}ToJSON(response));
