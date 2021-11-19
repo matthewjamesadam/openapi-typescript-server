@@ -166,7 +166,12 @@ export abstract class {{classname}}Base {
         {{/items}}
         {{/isArray}}
         {{^isArray}}
+        {{#required}}
         let {{paramName}} = {{dataType}}FromJSON(req.body)
+        {{/required}}
+        {{^required}}
+        let {{paramName}} = (Object.entries(req.body).length > 0) ? {{dataType}}FromJSON(req.body) : undefined;
+        {{/required}}
         {{/isArray}}
         {{/isPrimitiveType}}
         {{/bodyParam}}
